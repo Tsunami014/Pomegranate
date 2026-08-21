@@ -1,8 +1,0 @@
-let mk_app = fun src => { source = src, pinned = false } in
-
-{
-  apps = {
-    signal = mk_app "fdroid",
-    obtainium = mk_app "github-release",
-  },
-}
