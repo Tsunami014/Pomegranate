@@ -1,11 +1,11 @@
 { pkgs ? import <nixpkgs> {} }:
 let venvFold = ".venv";
 in pkgs.mkShell {
-  buildInputs = [
-    pkgs.libusb1
-    pkgs.python313
-    pkgs.python313Packages.pip
-    pkgs.python313Packages.debugpy
+  buildInputs = with pkgs; [
+    libusb1
+    python313
+    python313Packages.pip
+    python313Packages.debugpy
   ];
 
   shellHook = ''
@@ -18,6 +18,6 @@ in pkgs.mkShell {
         fi
     echo "Loading python..."
     source "${venvFold}/bin/activate"
-    pip install "adb-shell[usb]"
+    pip install "adb-shell[usb]" "py-nickel"
   '';
 }

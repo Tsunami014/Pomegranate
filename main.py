@@ -1,7 +1,24 @@
 import os
+import argparse
+import nickel
+import json
 from usb1 import USBErrorBusy
 from adb_shell.adb_device import AdbDeviceUsb
 from adb_shell.auth.sign_pythonrsa import PythonRSASigner
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-C", "--config", help="Use the provided file instead of ./main.nkl")
+args = parser.parse_args()
+
+if args.config:
+    conf = args.config
+else:
+    conf = "./main.nkl"
+with open(os.path.abspath(os.path.expanduser(conf))) as f:
+    res1 = nickel.run(f.read())
+    res2 = json.loads(res1)
+
+exit()
 
 keypth = os.path.expanduser('~/.android/adbkey')
 with open(keypth, 'r') as f:
