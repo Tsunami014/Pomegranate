@@ -1,3 +1,31 @@
 * {
     font-family: Sans Serif;
 }
+
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 8px;
+}
+#main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+#main > * {
+    flex: 1;
+    min-width: 0;
+}
+
+textarea {
+    resize: none;
+    padding: 4px;
+    border-radius: 8px;
+    background-color: #EEE;
+}
+textarea:focus {
+    background-color: #FFF;
+}
