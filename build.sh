@@ -1,8 +1,9 @@
 #!/bin/sh
 set -e
 
-for dir in "./main"; do
+for dir in ./main ./pseudocode; do
     cd "$dir"
+    echo "$dir"
     mkdir -p build
     cat main.js | minify --type js -o build/main.js
     minify style.css -o build/style.css
