@@ -1,6 +1,17 @@
 #!/bin/sh
 set -e
 
-cat src/main.js | minify --type js -o build/index.js
-minify base/main.css -o build/index.css
-minify base/main.html -o index.html
+for dir in "./main"; do
+    cd "$dir"
+    mkdir -p build
+    cat main.js | minify --type js -o build/main.js
+    minify style.css -o build/style.css
+    if [[ "$dir" = "./main" ]]; then
+        minify debug.html -o ../index.html
+        sed -i 's|\./|./main/build/|g' ../index.html
+    else
+        minify debug.html -o index.html
+        sed -i 's|\./|./build/|g' index.html
+    fi
+    cd - >/dev/null
+done
