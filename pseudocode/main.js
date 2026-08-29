@@ -328,15 +328,24 @@ function runCode() {
 }
 
 const STRUCTURE = {
+    // These mean the line with this on it should be deindented from the previous
     deindent: new Set([
         'elseif', 'else', 'endif', 'end', 'endcase', 'endwhile', 'until', 'next'
     ]),
+    // These mean the next line should be indented
     indent: new Set([
         'begin', 'if', 'elseif', 'else', 'casewhere', 'while', 'repeat', 'for'
     ]),
+    // If one of these is the command and it wasn't handled, error instead of assuming it's a process
+    namekeys: new Set([
+        'if', 'elseif', 'else', 'endif', 'casewhere', 'choice', 'otherwise', 'begin', 'end',
+        'while', 'endwhile', 'repeat', 'until', 'for', 'next'
+    ])
 }
+const MAIN_FUNC_NAME = "\1main"
 const forRe = /^for (?<var>.+?)(?: = (?<start>.+?))?(?: to (?<to>.+?))?(?: step (?<step>.+?))?$/i
 const caseRe = /^case(?: ?where)? (.+?)( evaluates to| is)?$/i
+const funcRe = /^(?:begin|end)(?: (?<name>.+?)(?:\( *(?<sig>.*) *\))?)?$/i
 function evalLine(line, state, lnnum) {
     const indent = line.search(/\S|$/);
     line = line.trim().replace('\t', ' ').replace(/ {2,}/g, ' ')
@@ -481,6 +490,23 @@ function evalLine(line, state, lnnum) {
             inside.pop()
             done = true
         }
+    } else if (innermostcmd === 'func') {
+        if (cmd == 'end') {
+            const gs = line.match(funcRe).groups
+            const nam = gs.name ?? MAIN_FUNC_NAME
+            const sig = gs.sig || ""
+            if (nam != innermost[1]) {
+                addMsg(`The function name on line ${lnnum} is not the same as the one defined!`, LEVEL.ERROR)
+            }
+            if (innermost[2] && !sig) {
+                addMsg(`You should include the function signature on line ${lnnum}!`, LEVEL.INFO)
+            } else if (innermost[2] != sig) {
+                addMsg(`The function signature on line ${lnnum} is not the same as the one defined!`, LEVEL.ERROR)
+            }
+            addMsg(`# end ${nam}(${sig})`, LEVEL.DEBUG)
+            inside.pop()
+            done = true
+        }
     }
 
     if (!done) {
@@ -561,11 +587,29 @@ function evalLine(line, state, lnnum) {
         }
         inside.push(['case'])
         done = true
+    } else if (cmd == 'begin') {
+        if (inside.length > 0) {
+            addMsg(`Function definition on line ${lnnum} is not at the outer level!`, LEVEL.WARN)
+        }
+        const gs = line.match(funcRe).groups
+        const nam = gs.name ?? MAIN_FUNC_NAME
+        var sig = gs.sig
+        if (sig === "") {
+            addMsg(`You do not have to include plain () at the end of the function definition on line ${lnnum}!`, LEVEL.INFO)
+        }
+        sig = sig || ""
+        addMsg(`def ${nam}(${sig}):`, LEVEL.DEBUG)
+        inside.push(['func', nam, sig])
+        done = true
     }
     }
 
     if (!done) {
-        addMsg(`> ${line}`, LEVEL.GREY)
+        if (STRUCTURE.namekeys.has(cmd)) {
+            addMsg(`Key '${cmd.toUpperCase()}' used in incorrect location on line ${lnnum}`, LEVEL.ERROR)
+        } else {
+            addMsg(`> ${line}`, LEVEL.GREY)
+        }
     }
 
     // Setup next state
