@@ -300,6 +300,7 @@ function setRefFilter(filt, nbtn) {
 const log = document.getElementById('logs')
 function rmEval() { log.replaceChildren(); }
 const LEVEL = Object.freeze({
+    GREY: 'grey',
     INFO: 'info',
     DEBUG: 'debug',
     WARN: 'warn',
@@ -315,8 +316,10 @@ function addMsg(msg, level) {
 function runCode() {
     rmEval()
     var state = {}
-    for (const [index, line] of code.value.split(/\r?\n|;/).entries()) {
-        state = evalLine(line, state, index + 1);
+    for (const [index, line] of code.value.split(/\r?\n/).entries()) {
+        for (const part of line.split(';')) {
+            state = evalLine(part, state, index + 1)
+        }
     }
     if (!state?.inside || state.inside.length > 0) {
         addMsg(`Unclosed statements found: [${state.inside.join(', ')}]!`, LEVEL.ERROR)
@@ -332,34 +335,36 @@ const STRUCTURE = {
         'begin', 'if', 'elseif', 'else', 'casewhere', 'while', 'repeat', 'for'
     ]),
 }
-const forRe = /^for\s+(?<var>.+?)(?:\s+=\s+(?<start>.+?))?(?:\s+to\s+(?<to>.+?))?(?:\s+step\s+(?<step>.+?))?$/i
+const forRe = /^for (?<var>.+?)(?: = (?<start>.+?))?(?: to (?<to>.+?))?(?: step (?<step>.+?))?$/i
+const caseRe = /^case(?: ?where)? (.+?)( evaluates to| is)?$/i
 function evalLine(line, state, lnnum) {
     const indent = line.search(/\S|$/);
-    line = line.trim()
-    const colonend = line.endsWith(':')
-    if (colonend) { line = line.slice(0, -1) }
-    // TODO: Complain about colon when anything but cases
+    line = line.trim().replace('\t', ' ').replace(/ {2,}/g, ' ')
     if (!line) return state;
     const cmd = line.match(/^\S+/)?.[0].toLowerCase()
 
     const inside = state?.inside ?? []
-    const innermost = inside[inside.length-1]
+    const innermost = (inside && inside.length > 0)? inside[inside.length-1] : null
+    const innermostcmd = innermost? innermost[0] : null
+
+    var fudgeindent = false
 
     // Check indent
     const lastIndent = state?.indent ?? 0
     var dir = state?.indentDir ?? 0
     if (STRUCTURE.deindent.has(cmd)) dir -= 1
-    if (dir > 0 && indent <= lastIndent) {
-        addMsg(`Expected indent on line ${lnnum}!`, LEVEL.ERROR)
-    } else if (dir == 0 && indent != lastIndent &&
-        (innermost === "case" && (cmd == "choice" || cmd == "otherwise"))) {
-        addMsg(`Unexpected indent on line ${lnnum}!`, LEVEL.ERROR)
-    } else if (dir < 0 && indent >= lastIndent) {
-        addMsg(`Expected deindent on line ${lnnum}!`, LEVEL.ERROR)
+    if (!state?.fudgeindent) {
+        if (dir > 0 && indent <= lastIndent) {
+            addMsg(`Expected indent on line ${lnnum}!`, LEVEL.ERROR)
+        } else if (dir == 0 && indent != lastIndent) {
+            addMsg(`Unexpected indent on line ${lnnum}!`, LEVEL.ERROR)
+        } else if (dir < 0 && indent >= lastIndent) {
+            addMsg(`Expected deindent on line ${lnnum}!`, LEVEL.ERROR)
+        }
     }
 
     var done = false
-    if (innermost === 'if') {
+    if (innermostcmd === 'if') {
         if (cmd == 'elseif') {
             const spl = line.split(' ')
             var cond;
@@ -376,29 +381,29 @@ function evalLine(line, state, lnnum) {
             addMsg(`elif (${cond}):`, LEVEL.DEBUG)
             done = true
         } else if (cmd == 'else') {
-            if (line.split(' ').length > 1) {
+            if (line.toLowerCase() != cmd) {
                 addMsg(`Too much on line ${lnnum}! (Did you mean ELSEIF?)`, LEVEL.ERROR)
             }
             addMsg(`else:`, LEVEL.DEBUG)
             done = true
         } else if (cmd == 'endif') {
-            if (line.split(' ').length > 1) {
+            if (line.toLowerCase() != cmd) {
                 addMsg(`Too much on line ${lnnum}!`, LEVEL.ERROR)
             }
             addMsg(`# endif`, LEVEL.DEBUG)
             inside.pop()
             done = true
         }
-    } else if (innermost === 'while') {
+    } else if (innermostcmd === 'while') {
         if (cmd == 'endwhile') {
-            if (line.split(' ').length > 1) {
+            if (line.toLowerCase() != cmd) {
                 addMsg(`Too much on line ${lnnum}!`, LEVEL.ERROR)
             }
             addMsg(`# endwhile`, LEVEL.DEBUG)
             inside.pop()
             done = true
         }
-    } else if (innermost === 'repeat') {
+    } else if (innermostcmd === 'repeat') {
         if (cmd == 'until') {
             var cond = line.split(' ').slice(1).join(' ').trim()
             if (!cond) {
@@ -408,13 +413,71 @@ function evalLine(line, state, lnnum) {
             inside.pop()
             done = true
         }
-    } else if (innermost === 'for') {
+    } else if (innermostcmd === 'for') {
         if (cmd == 'next') {
             var v = line.split(' ').slice(1).join(' ').trim()
             if (!v) {
                 addMsg(`Missing variable name on line ${lnnum}!`, LEVEL.ERROR)
+            } else if (v != innermost[1]) {
+                addMsg(`Variable name on line ${lnnum} doesn't match with definition!`, LEVEL.ERROR)
             }
             addMsg(`# next ${v || "???"}`, LEVEL.DEBUG)
+            inside.pop()
+            done = true
+        }
+    } else if (innermostcmd === 'case') {
+        const cmd2 = cmd.endsWith(':')? cmd.slice(0, -1) : cmd;
+        const endcase = line.toLowerCase().startsWith('end case')
+        if (cmd2 == 'choice') {
+            const parts = line.split(':')
+            var cond; var proc;
+            if (parts.length < 2) {
+                addMsg(`Missing colon on line ${lnnum}!`, LEVEL.ERROR)
+                cond = line
+            } else if (parts.length > 2) {
+                addMsg(`Too many colons on line ${lnnum}!`, LEVEL.ERROR)
+                cond = parts[0]
+                proc = parts.slice(1).join(':')
+            } else {
+                cond = parts[0]
+                proc = parts[1]
+            }
+            addMsg(`case ${cond.replace(/^S+\s*/, '')}:`, LEVEL.DEBUG)
+            if (proc) {
+                addMsg(`> ${proc}`, LEVEL.GREY)
+            }
+            fudgeindent = true
+            done = true
+        } else if (cmd2 == 'otherwise' || cmd2 == 'default') {
+            if (cmd2 != 'otherwise') {
+                addMsg(`Should be 'OTHERWISE' not 'DEFAULT' on line ${lnnum}!`, LEVEL.ERROR)
+            }
+            const parts = line.split(':')
+            if (parts.length < 2) {
+                addMsg(`Missing colon on line ${lnnum}!`, LEVEL.ERROR)
+            } else if (parts.length > 2) {
+                addMsg(`Too many colons on line ${lnnum}!`, LEVEL.ERROR)
+            }
+            if (parts[0].toLowerCase() != cmd2) {
+                addMsg(`Too much before the colon on line ${lnnum}!`, LEVEL.ERROR)
+            }
+            addMsg(`case _:`, LEVEL.DEBUG)
+            const proc = parts.slice(1).join(':').trim()
+            if (proc) {
+                addMsg(`> ${proc}`, LEVEL.GREY)
+            }
+            fudgeindent = true
+            done = true
+        } else if (cmd == 'endcase' || cmd == 'esac' || endcase) {
+            if (!endcase) {
+                addMsg(`Should be 'END CASE' not '${cmd.toUpperCase()}' on line ${lnnum}!`, LEVEL.ERROR)
+                if (line.toLowerCase() != cmd) {
+                    addMsg(`Too much on line ${lnnum}!`, LEVEL.ERROR)
+                }
+            } else if (line.toLowerCase() != 'end case') {
+                addMsg(`Too much on line ${lnnum}!`, LEVEL.ERROR)
+            }
+            addMsg(`# endcase`, LEVEL.DEBUG)
             inside.pop()
             done = true
         }
@@ -435,12 +498,12 @@ function evalLine(line, state, lnnum) {
             addMsg(`Missing condition on line ${lnnum}!`, LEVEL.ERROR)
         }
         addMsg(`if (${cond}):`, LEVEL.DEBUG)
-        inside.push('if')
+        inside.push(['if'])
         done = true
     } else if (cmd == 'while') {
         const spl = line.split(' ')
         var cond;
-        if (spl[spl.length-1].toLowerCase() != "do") {
+        if (spl[spl.length-1].toLowerCase() == "do") {
             addMsg(`'DO' not required on line ${lnnum}!`, LEVEL.WARN)
             cond = spl.slice(1,-1).join(' ')
         } else {
@@ -451,22 +514,24 @@ function evalLine(line, state, lnnum) {
             addMsg(`Missing condition on line ${lnnum}!`, LEVEL.ERROR)
         }
         addMsg(`while (${cond}):`, LEVEL.DEBUG)
-        inside.push('while')
+        inside.push(['while'])
         done = true
     } else if (cmd == 'repeat') {
         if (line.split(' ').length > 1) {
             addMsg(`Too much on line ${lnnum}!`, LEVEL.ERROR)
         }
         addMsg(`while True: # repeat`, LEVEL.DEBUG)
-        inside.push('repeat')
+        inside.push(['repeat'])
         done = true
     } else if (cmd == 'for') {
         const out = line.match(forRe)
+        var v
         if (out === null) {
             addMsg(`Missing arguments on line ${lnnum}!`, LEVEL.ERROR)
             addMsg(`for ???:`, LEVEL.DEBUG)
         } else {
             const gs = out.groups
+            v = gs.var
             if (!gs.start) {
                 addMsg(`Missing start value on line ${lnnum}!`, LEVEL.ERROR)
             }
@@ -476,19 +541,40 @@ function evalLine(line, state, lnnum) {
             if (!gs.step) {
                 addMsg(`No step value on line ${lnnum}, using 1 instead.`, LEVEL.INFO)
             }
-            addMsg(`for ${gs.var} in range(${gs.start ?? "??"}, ${gs.end ?? "??"}${gs.step? (", "+gs.step) : ""}):`, LEVEL.DEBUG)
+            addMsg(`for ${v} in range(${gs.start ?? "??"}, ${gs.to ?? "??"}${gs.step? (", "+gs.step) : ""}):`, LEVEL.DEBUG)
         }
-        inside.push('for')
+        inside.push(['for', v])
+        done = true
+    } else if (cmd == 'case' || cmd == 'casewhere') {
+        if (cmd == 'case') {
+            addMsg(`Should be 'CASEWHERE' not 'CASE' on line ${lnnum}!`, LEVEL.ERROR)
+        }
+        const out = line.match(caseRe)
+        if (out === null) {
+            addMsg(`Missing arguments on line ${lnnum}!`, LEVEL.ERROR)
+            addMsg(`match ???:`, LEVEL.DEBUG)
+        } else {
+            if (!out[2]) {
+                addMsg(`CASEWHERE should probably end with ' EVALUATES TO' or ' IS', but found nothing on line ${lnnum}!`, LEVEL.WARN)
+            }
+            addMsg(`match ${out[1]}:`, LEVEL.DEBUG)
+        }
+        inside.push(['case'])
         done = true
     }
     }
 
+    if (!done) {
+        addMsg(`> ${line}`, LEVEL.GREY)
+    }
+
     // Setup next state
-    const nxtindent = STRUCTURE.indent.has(cmd) || colonend ? 1:0
+    var nxtindent = STRUCTURE.indent.has(cmd) ? 1:0
     const nstate = {
         indent: indent,
         indentDir: nxtindent,
         inside: inside,
+        fudgeindent: fudgeindent,
     }
     return nstate
 }

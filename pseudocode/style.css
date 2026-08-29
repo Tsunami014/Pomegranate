@@ -43,6 +43,10 @@ body {
     padding: 8px 12px;
     margin: 5px 0;
 }
+.grey {
+    background-color: #DDD;
+    border-left: 5px solid #999;
+}
 .info {
     background-color: #DED;
     border-left: 5px solid #9F9;
