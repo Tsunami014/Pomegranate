@@ -181,13 +181,16 @@ Pseudocode is largely up to interpretation.
 How you decide to implement processes and expressions is mostly up to you.
 `],
         ["Inputs/Outputs", `
-This doesn't have one explicit form it needs to be in, but this is a good idea;
-INPUT variable
-DISPLAY expression
+This doesn't have one explicit form it needs to be in, so here are some ideas:
 
-As an example of how variable it is, you could probably get away with the following instead, depending on how you use it.
-variable = INPUT "Input a number:"
-RETURN expression
+READING:
+    INPUT variable
+    variable = INPUT "Input a number:"
+    READ INTO variable
+
+WRITING:
+    DISPLAY expression
+    RETURN expression
 `],
     ],
     sel: [
@@ -272,6 +275,51 @@ BEGIN subprocess
 END subprocess
 `],
     ],
+    misc: [
+        ["A test of every feature", `
+BEGIN
+    IF condition THEN
+        DISPLAY "Cool!"
+    ELSEIF condition2 THEN
+        DISPLAY "Less cool"
+    ELSE
+        DISPLAY "Not cool."
+    ENDIF
+
+    variable = subprocess()
+
+    WHILE condition is true
+        process
+    ENDWHILE
+
+    REPEAT
+        INPUT test_score
+    UNTIL test_score > 50
+
+    DISPLAY "Here are the numbers 1-10:"
+    FOR num = 1 TO 10 STEP 1
+        proc2(num)
+    NEXT num
+END
+
+BEGIN subprocess
+    CASEWHERE expression evaluates to
+        choice a: process a
+        choice b:
+            process b
+            IF hi THEN
+                test
+            ENDIF
+        OTHERWISE: default process
+    END CASE
+    RETURN expression
+END subprocess
+
+BEGIN proc2(var)
+    DISPLAY var
+END proc2(var)
+`],
+    ],
 }
 for (const [key, opts] of Object.entries(REF)) {
     opts.forEach(o=>{
@@ -298,7 +346,11 @@ function setRefFilter(filt, nbtn) {
 
 
 const log = document.getElementById('logs')
-function rmEval() { log.replaceChildren(); }
+const pynput = document.getElementById('pynput')
+function rmEval() {
+    log.replaceChildren();
+    pynput.value = "";
+}
 const LEVEL = Object.freeze({
     GREY: 'grey',
     INFO: 'info',
@@ -313,6 +365,14 @@ function addMsg(msg, level) {
     nelm.classList.add(level)
     log.appendChild(nelm)
 }
+function addToPy(msg, indent) {
+    const out = "    ".repeat(indent) + msg
+    if (pynput.value == "") {
+        pynput.value = out;
+    } else {
+        pynput.value += "\n"+out;
+    }
+}
 function runCode() {
     rmEval()
     var state = {}
@@ -324,7 +384,7 @@ function runCode() {
     if (!state?.inside || state.inside.length > 0) {
         addMsg(`Unclosed statements found: [${state.inside.join(', ')}]!`, LEVEL.ERROR)
     }
-    addMsg("Done evaluating!", LEVEL.INFO)
+    addMsg("Done evaluating!", LEVEL.GREY)
 }
 
 const STRUCTURE = {
@@ -336,6 +396,10 @@ const STRUCTURE = {
     indent: new Set([
         'begin', 'if', 'elseif', 'else', 'casewhere', 'while', 'repeat', 'for'
     ]),
+    // These keys automatically allow fudging of indent
+    fudge: new Set([
+        'choice', 'choice:', 'otherwise', 'otherwise:'
+    ]),
     // If one of these is the command and it wasn't handled, error instead of assuming it's a process
     namekeys: new Set([
         'if', 'elseif', 'else', 'endif', 'casewhere', 'choice', 'otherwise', 'begin', 'end',
@@ -343,26 +407,31 @@ const STRUCTURE = {
     ])
 }
 const MAIN_FUNC_NAME = "\1main"
+const ALT_MAIN_FUNC_NAME = "Program"
 const forRe = /^for (?<var>.+?)(?: = (?<start>.+?))?(?: to (?<to>.+?))?(?: step (?<step>.+?))?$/i
 const caseRe = /^case(?: ?where)? (.+?)( evaluates to| is)?$/i
 const funcRe = /^(?:begin|end)(?: (?<name>.+?)(?:\( *(?<sig>.*) *\))?)?$/i
 function evalLine(line, state, lnnum) {
     const indent = line.search(/\S|$/);
     line = line.trim().replace('\t', ' ').replace(/ {2,}/g, ' ')
-    if (!line) return state;
+    if (!line) {
+        addToPy("", state?.inside?.length ?? 0)
+        return state
+    }
     const cmd = line.match(/^\S+/)?.[0].toLowerCase()
 
     const inside = state?.inside ?? []
     const innermost = (inside && inside.length > 0)? inside[inside.length-1] : null
     const innermostcmd = innermost? innermost[0] : null
+    const pyindent = inside.length + inside.reduce((count, it) => it[0] == "case" ? count + 1 : count, 0)
 
     var fudgeindent = false
 
     // Check indent
     const lastIndent = state?.indent ?? 0
-    var dir = state?.indentDir ?? 0
-    if (STRUCTURE.deindent.has(cmd)) dir -= 1
-    if (!state?.fudgeindent) {
+    if (!state?.fudgeindent && !STRUCTURE.fudge.has(cmd)) {
+        var dir = state?.indentDir ?? 0
+        if (STRUCTURE.deindent.has(cmd)) dir -= 1
         if (dir > 0 && indent <= lastIndent) {
             addMsg(`Expected indent on line ${lnnum}!`, LEVEL.ERROR)
         } else if (dir == 0 && indent != lastIndent) {
@@ -387,19 +456,18 @@ function evalLine(line, state, lnnum) {
             if (!cond) {
                 addMsg(`Missing condition on line ${lnnum}!`, LEVEL.ERROR)
             }
-            addMsg(`elif (${cond}):`, LEVEL.DEBUG)
+            addToPy(`elif (${cond}):`, pyindent-1)
             done = true
         } else if (cmd == 'else') {
             if (line.toLowerCase() != cmd) {
                 addMsg(`Too much on line ${lnnum}! (Did you mean ELSEIF?)`, LEVEL.ERROR)
             }
-            addMsg(`else:`, LEVEL.DEBUG)
+            addToPy(`else:`, pyindent-1)
             done = true
         } else if (cmd == 'endif') {
             if (line.toLowerCase() != cmd) {
                 addMsg(`Too much on line ${lnnum}!`, LEVEL.ERROR)
             }
-            addMsg(`# endif`, LEVEL.DEBUG)
             inside.pop()
             done = true
         }
@@ -408,7 +476,6 @@ function evalLine(line, state, lnnum) {
             if (line.toLowerCase() != cmd) {
                 addMsg(`Too much on line ${lnnum}!`, LEVEL.ERROR)
             }
-            addMsg(`# endwhile`, LEVEL.DEBUG)
             inside.pop()
             done = true
         }
@@ -418,7 +485,7 @@ function evalLine(line, state, lnnum) {
             if (!cond) {
                 addMsg(`Missing condition on line ${lnnum}!`, LEVEL.ERROR)
             }
-            addMsg(`if (${cond}): break # until`, LEVEL.DEBUG)
+            addToPy(`if (${cond}): break # until`, pyindent)
             inside.pop()
             done = true
         }
@@ -430,7 +497,7 @@ function evalLine(line, state, lnnum) {
             } else if (v != innermost[1]) {
                 addMsg(`Variable name on line ${lnnum} doesn't match with definition!`, LEVEL.ERROR)
             }
-            addMsg(`# next ${v || "???"}`, LEVEL.DEBUG)
+            addToPy(`# next ${v || "???"}`, pyindent-1)
             inside.pop()
             done = true
         }
@@ -451,9 +518,9 @@ function evalLine(line, state, lnnum) {
                 cond = parts[0]
                 proc = parts[1]
             }
-            addMsg(`case ${cond.replace(/^S+\s*/, '')}:`, LEVEL.DEBUG)
+            addToPy(`case ${cond.replace(/^S+\s*/, '')}:`, pyindent-1)
             if (proc) {
-                addMsg(`> ${proc}`, LEVEL.GREY)
+                addToPy(`> ${proc.trim()}`, pyindent)
             }
             fudgeindent = true
             done = true
@@ -470,10 +537,10 @@ function evalLine(line, state, lnnum) {
             if (parts[0].toLowerCase() != cmd2) {
                 addMsg(`Too much before the colon on line ${lnnum}!`, LEVEL.ERROR)
             }
-            addMsg(`case _:`, LEVEL.DEBUG)
+            addToPy(`case _:`, pyindent-1)
             const proc = parts.slice(1).join(':').trim()
             if (proc) {
-                addMsg(`> ${proc}`, LEVEL.GREY)
+                addToPy(`> ${proc}`, pyindent)
             }
             fudgeindent = true
             done = true
@@ -486,7 +553,6 @@ function evalLine(line, state, lnnum) {
             } else if (line.toLowerCase() != 'end case') {
                 addMsg(`Too much on line ${lnnum}!`, LEVEL.ERROR)
             }
-            addMsg(`# endcase`, LEVEL.DEBUG)
             inside.pop()
             done = true
         }
@@ -503,7 +569,7 @@ function evalLine(line, state, lnnum) {
             } else if (innermost[2] != sig) {
                 addMsg(`The function signature on line ${lnnum} is not the same as the one defined!`, LEVEL.ERROR)
             }
-            addMsg(`# end ${nam}(${sig})`, LEVEL.DEBUG)
+            addToPy(`# end ${nam == MAIN_FUNC_NAME? ALT_MAIN_FUNC_NAME : nam}(${sig})`, pyindent-1)
             inside.pop()
             done = true
         }
@@ -523,7 +589,7 @@ function evalLine(line, state, lnnum) {
         if (!cond) {
             addMsg(`Missing condition on line ${lnnum}!`, LEVEL.ERROR)
         }
-        addMsg(`if (${cond}):`, LEVEL.DEBUG)
+        addToPy(`if (${cond}):`, pyindent)
         inside.push(['if'])
         done = true
     } else if (cmd == 'while') {
@@ -539,14 +605,14 @@ function evalLine(line, state, lnnum) {
         if (!cond) {
             addMsg(`Missing condition on line ${lnnum}!`, LEVEL.ERROR)
         }
-        addMsg(`while (${cond}):`, LEVEL.DEBUG)
+        addToPy(`while (${cond}):`, pyindent)
         inside.push(['while'])
         done = true
     } else if (cmd == 'repeat') {
         if (line.split(' ').length > 1) {
             addMsg(`Too much on line ${lnnum}!`, LEVEL.ERROR)
         }
-        addMsg(`while True: # repeat`, LEVEL.DEBUG)
+        addToPy(`while True: # repeat`, pyindent)
         inside.push(['repeat'])
         done = true
     } else if (cmd == 'for') {
@@ -554,7 +620,7 @@ function evalLine(line, state, lnnum) {
         var v
         if (out === null) {
             addMsg(`Missing arguments on line ${lnnum}!`, LEVEL.ERROR)
-            addMsg(`for ???:`, LEVEL.DEBUG)
+            addToPy(`for ???:`, pyindent)
         } else {
             const gs = out.groups
             v = gs.var
@@ -567,7 +633,7 @@ function evalLine(line, state, lnnum) {
             if (!gs.step) {
                 addMsg(`No step value on line ${lnnum}, using 1 instead.`, LEVEL.INFO)
             }
-            addMsg(`for ${v} in range(${gs.start ?? "??"}, ${gs.to ?? "??"}${gs.step? (", "+gs.step) : ""}):`, LEVEL.DEBUG)
+            addToPy(`for ${v} in range(${gs.start ?? "??"}, ${gs.to ?? "??"} + 1${gs.step? (", "+gs.step) : ""}):`, pyindent)
         }
         inside.push(['for', v])
         done = true
@@ -578,17 +644,17 @@ function evalLine(line, state, lnnum) {
         const out = line.match(caseRe)
         if (out === null) {
             addMsg(`Missing arguments on line ${lnnum}!`, LEVEL.ERROR)
-            addMsg(`match ???:`, LEVEL.DEBUG)
+            addToPy(`match ???:`, pyindent)
         } else {
             if (!out[2]) {
                 addMsg(`CASEWHERE should probably end with ' EVALUATES TO' or ' IS', but found nothing on line ${lnnum}!`, LEVEL.WARN)
             }
-            addMsg(`match ${out[1]}:`, LEVEL.DEBUG)
+            addToPy(`match ${out[1]}:`, pyindent)
         }
         inside.push(['case'])
         done = true
     } else if (cmd == 'begin') {
-        if (inside.length > 0) {
+        if (pyindent > 0) {
             addMsg(`Function definition on line ${lnnum} is not at the outer level!`, LEVEL.WARN)
         }
         const gs = line.match(funcRe).groups
@@ -598,8 +664,14 @@ function evalLine(line, state, lnnum) {
             addMsg(`You do not have to include plain () at the end of the function definition on line ${lnnum}!`, LEVEL.INFO)
         }
         sig = sig || ""
-        addMsg(`def ${nam}(${sig}):`, LEVEL.DEBUG)
+        addToPy(`def ${nam == MAIN_FUNC_NAME? ALT_MAIN_FUNC_NAME : nam}(${sig}):`, pyindent)
         inside.push(['func', nam, sig])
+        done = true
+    } else if (cmd == 'display') {
+        addToPy(`print(${line.slice(line.indexOf(' ') + 1)})`, pyindent)
+        done = true
+    } else if (cmd == 'return') {
+        addToPy(`return ${line.slice(line.indexOf(' ') + 1)}`, pyindent)
         done = true
     }
     }
@@ -608,7 +680,7 @@ function evalLine(line, state, lnnum) {
         if (STRUCTURE.namekeys.has(cmd)) {
             addMsg(`Key '${cmd.toUpperCase()}' used in incorrect location on line ${lnnum}`, LEVEL.ERROR)
         } else {
-            addMsg(`> ${line}`, LEVEL.GREY)
+            addToPy(`${line}`, pyindent)
         }
     }
 
