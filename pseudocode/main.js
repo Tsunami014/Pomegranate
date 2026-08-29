@@ -520,7 +520,7 @@ function evalLine(line, state, lnnum) {
             }
             addToPy(`case ${cond.replace(/^S+\s*/, '')}:`, pyindent-1)
             if (proc) {
-                addToPy(`> ${proc.trim()}`, pyindent)
+                addToPy(`${proc.trim()}#`, pyindent)
             }
             fudgeindent = true
             done = true
@@ -540,7 +540,7 @@ function evalLine(line, state, lnnum) {
             addToPy(`case _:`, pyindent-1)
             const proc = parts.slice(1).join(':').trim()
             if (proc) {
-                addToPy(`> ${proc}`, pyindent)
+                addToPy(`${proc.trim()}#`, pyindent)
             }
             fudgeindent = true
             done = true
@@ -680,7 +680,7 @@ function evalLine(line, state, lnnum) {
         if (STRUCTURE.namekeys.has(cmd)) {
             addMsg(`Key '${cmd.toUpperCase()}' used in incorrect location on line ${lnnum}`, LEVEL.ERROR)
         } else {
-            addToPy(`${line}`, pyindent)
+            addToPy(`${line}#`, pyindent)
         }
     }
 
