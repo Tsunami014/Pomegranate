@@ -176,21 +176,114 @@ code.addEventListener("keydown", e => {
 const rconts = document.getElementById("refconts");
 const rtxt = document.getElementById("reftxt");
 const REF = {
+    basic: [
+        ["NOTE", `
+Pseudocode is largely up to interpretation.
+How you decide to implement processes and expressions is mostly up to you.
+`],
+        ["Inputs/Outputs", `
+This doesn't have one explicit form it needs to be in, but this is a good idea;
+INPUT variable
+DISPLAY expression
+
+As an example of how variable it is, you could probably get away with the following instead, depending on how you use it.
+variable = INPUT "Input a number:"
+RETURN expression
+`],
+    ],
     sel: [
-        ["Hello!", "Hello, world!"],
+        ["If/else", `
+IF condition THEN
+    process
+ENDIF
+
+IF condition THEN
+    process1
+ELSE
+    process2
+ENDIF
+`],
+        ["If/elseif/else", `
+IF condition THEN
+    process1
+ELSEIF condition2 THEN
+    process2
+ELSE
+    process3
+ENDIF
+`],
+        ["Cases", `
+CASEWHERE expression evaluates to
+    choice a: process a
+    choice b: process b
+    ...
+    OTHERWISE: default process
+END CASE
+`],
     ],
     rep: [
-        ["Goodbye.", "Bye, world!"],
+        ["Pre-test loop (while)", `
+WHILE condition is true
+    process
+ENDWHILE
+`],
+        ["Post-test loop (repeat-until)", `
+REPEAT
+    process
+UNTIL condition is true
+`],
+        ["For loop", `
+FOR variable = start TO finish STEP increment
+    process
+NEXT variable
+`],
     ],
     subr: [
-        ["Hello cat", "Bye dog"],
+        ["Main process", `
+BEGIN
+    process
+END
+`],
+        ["Subprocess", `
+BEGIN
+    subprocess()
+END
+
+BEGIN subprocess
+    process
+END subprocess
+`],
+        ["Subprocess with arguments", `
+BEGIN
+    subprocess(argument)
+END
+
+BEGIN subprocess(argument)
+    process
+END subprocess(argument)
+`],
+        ["Returning", `
+BEGIN
+    variable = subprocess()
+END
+
+BEGIN subprocess
+    process
+    RETURN expression
+END subprocess
+`],
     ],
 }
 for (const [key, opts] of Object.entries(REF)) {
     opts.forEach(o=>{
         const elm = document.createElement('p')
         elm.innerText = o[0]
-        elm.onclick = ()=>{ rtxt.value = o[1] }
+        elm.onclick = ()=>{
+            rtxt.value = o[1]
+            const oldsel = document.querySelector('.selrefIt')
+            if (oldsel) oldsel.classList.remove('selrefIt')
+            elm.classList.add('selrefIt')
+        }
         elm.classList.add('refIt')
         elm.classList.add(key+'_it')
         rconts.appendChild(elm)

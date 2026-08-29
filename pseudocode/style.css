@@ -23,7 +23,7 @@ body {
 
 #ref {
     display: grid;
-    grid-template-columns: minmax(20%, auto) 1fr minmax(auto, 30%);
+    grid-template-columns: minmax(20%, auto) 1fr minmax(auto, 35%);
 }
 #ref > * { padding: 0 10px; }
 summary {
@@ -73,10 +73,16 @@ button:active {
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
-.refIt:hover {
-    background-color: #EEE;
+.refIt:hover { background-color: #EEE; }
+.selrefIt { background-color: #FFD;}
+.selrefIt:hover { background-color: #EEB;}
+
+#refconts {
+    contain: size;
+    overflow-y: scroll;
 }
 
+#refconts.basic > :not(.basic_it),
 #refconts.sel > :not(.sel_it),
 #refconts.rep > :not(.rep_it),
 #refconts.subr > :not(.subr_it) {

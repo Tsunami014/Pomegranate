@@ -18,12 +18,13 @@
             <div id="ref">
                 <aside>
                     <button onclick="setRefFilter('all', this)" class="refbtnsel">All</button>
+                    <button onclick="setRefFilter('basic', this)">Basic</button>
                     <button onclick="setRefFilter('sel', this)">Selection</button>
                     <button onclick="setRefFilter('rep', this)">Repetition</button>
                     <button onclick="setRefFilter('subr', this)">Subroutines</button>
                 </aside>
                 <div id="refconts" class="all"></div>
-                <textarea id="reftxt" disabled></textarea>
+                <textarea id="reftxt" wrap="off" disabled></textarea>
             </div>
         </details>
     </footer>
