@@ -65,6 +65,7 @@ body {
     grid-template-columns: minmax(20%, auto) 1fr minmax(auto, 35%);
 }
 #ref > * { padding: 0 10px; }
+#reftxt { padding: 10px; }
 summary {
     font-size: 18px;
     cursor: pointer;

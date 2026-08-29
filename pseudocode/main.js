@@ -278,7 +278,7 @@ for (const [key, opts] of Object.entries(REF)) {
         const elm = document.createElement('p')
         elm.innerText = o[0]
         elm.onclick = ()=>{
-            rtxt.value = o[1]
+            rtxt.value = o[1].trim()
             const oldsel = document.querySelector('.selrefIt')
             if (oldsel) oldsel.classList.remove('selrefIt')
             elm.classList.add('selrefIt')
@@ -315,42 +315,180 @@ function addMsg(msg, level) {
 function runCode() {
     rmEval()
     var state = {}
-    for (const [index, line] of code.value.split(/\r?\n/).entries()) {
+    for (const [index, line] of code.value.split(/\r?\n|;/).entries()) {
         state = evalLine(line, state, index + 1);
+    }
+    if (!state?.inside || state.inside.length > 0) {
+        addMsg(`Unclosed statements found: [${state.inside.join(', ')}]!`, LEVEL.ERROR)
     }
     addMsg("Done evaluating!", LEVEL.INFO)
 }
 
-const deindentwords = new Set([
-    'elseif', 'else', 'endif', 'end', 'endcase', 'endwhile', 'until', 'next'
-]);
-const indentwords = new Set([
-    'begin', 'if', 'elseif', 'else', 'casewhere', 'while', 'repeat', 'for'
-]);
+const STRUCTURE = {
+    deindent: new Set([
+        'elseif', 'else', 'endif', 'end', 'endcase', 'endwhile', 'until', 'next'
+    ]),
+    indent: new Set([
+        'begin', 'if', 'elseif', 'else', 'casewhere', 'while', 'repeat', 'for'
+    ]),
+}
+const forRe = /^for\s+(?<var>.+?)(?:\s+=\s+(?<start>.+?))?(?:\s+to\s+(?<to>.+?))?(?:\s+step\s+(?<step>.+?))?$/i
 function evalLine(line, state, lnnum) {
-    console.log(line)
     const indent = line.search(/\S|$/);
     line = line.trim()
+    const colonend = line.endsWith(':')
+    if (colonend) { line = line.slice(0, -1) }
+    // TODO: Complain about colon when anything but cases
     if (!line) return state;
     const cmd = line.match(/^\S+/)?.[0].toLowerCase()
+
+    const inside = state?.inside ?? []
+    const innermost = inside[inside.length-1]
 
     // Check indent
     const lastIndent = state?.indent ?? 0
     var dir = state?.indentDir ?? 0
-    if (deindentwords.has(cmd)) dir -= 1
+    if (STRUCTURE.deindent.has(cmd)) dir -= 1
     if (dir > 0 && indent <= lastIndent) {
         addMsg(`Expected indent on line ${lnnum}!`, LEVEL.ERROR)
-    } else if (dir == 0 && indent != lastIndent) {
+    } else if (dir == 0 && indent != lastIndent &&
+        (innermost === "case" && (cmd == "choice" || cmd == "otherwise"))) {
         addMsg(`Unexpected indent on line ${lnnum}!`, LEVEL.ERROR)
     } else if (dir < 0 && indent >= lastIndent) {
         addMsg(`Expected deindent on line ${lnnum}!`, LEVEL.ERROR)
     }
 
+    var done = false
+    if (innermost === 'if') {
+        if (cmd == 'elseif') {
+            const spl = line.split(' ')
+            var cond;
+            if (spl[spl.length-1].toLowerCase() != "then") {
+                addMsg(`Expected 'THEN' at end of line ${lnnum}!`, LEVEL.ERROR)
+                cond = spl.slice(1).join(' ')
+            } else {
+                cond = spl.slice(1,-1).join(' ')
+            }
+            cond = cond.trim()
+            if (!cond) {
+                addMsg(`Missing condition on line ${lnnum}!`, LEVEL.ERROR)
+            }
+            addMsg(`elif (${cond}):`, LEVEL.DEBUG)
+            done = true
+        } else if (cmd == 'else') {
+            if (line.split(' ').length > 1) {
+                addMsg(`Too much on line ${lnnum}! (Did you mean ELSEIF?)`, LEVEL.ERROR)
+            }
+            addMsg(`else:`, LEVEL.DEBUG)
+            done = true
+        } else if (cmd == 'endif') {
+            if (line.split(' ').length > 1) {
+                addMsg(`Too much on line ${lnnum}!`, LEVEL.ERROR)
+            }
+            addMsg(`# endif`, LEVEL.DEBUG)
+            inside.pop()
+            done = true
+        }
+    } else if (innermost === 'while') {
+        if (cmd == 'endwhile') {
+            if (line.split(' ').length > 1) {
+                addMsg(`Too much on line ${lnnum}!`, LEVEL.ERROR)
+            }
+            addMsg(`# endwhile`, LEVEL.DEBUG)
+            inside.pop()
+            done = true
+        }
+    } else if (innermost === 'repeat') {
+        if (cmd == 'until') {
+            var cond = line.split(' ').slice(1).join(' ').trim()
+            if (!cond) {
+                addMsg(`Missing condition on line ${lnnum}!`, LEVEL.ERROR)
+            }
+            addMsg(`if (${cond}): break # until`, LEVEL.DEBUG)
+            inside.pop()
+            done = true
+        }
+    } else if (innermost === 'for') {
+        if (cmd == 'next') {
+            var v = line.split(' ').slice(1).join(' ').trim()
+            if (!v) {
+                addMsg(`Missing variable name on line ${lnnum}!`, LEVEL.ERROR)
+            }
+            addMsg(`# next ${v || "???"}`, LEVEL.DEBUG)
+            inside.pop()
+            done = true
+        }
+    }
+
+    if (!done) {
+    if (cmd == 'if') {
+        const spl = line.split(' ')
+        var cond;
+        if (spl[spl.length-1].toLowerCase() != "then") {
+            addMsg(`Expected 'THEN' at end of line ${lnnum}!`, LEVEL.ERROR)
+            cond = spl.slice(1).join(' ')
+        } else {
+            cond = spl.slice(1,-1).join(' ')
+        }
+        cond = cond.trim()
+        if (!cond) {
+            addMsg(`Missing condition on line ${lnnum}!`, LEVEL.ERROR)
+        }
+        addMsg(`if (${cond}):`, LEVEL.DEBUG)
+        inside.push('if')
+        done = true
+    } else if (cmd == 'while') {
+        const spl = line.split(' ')
+        var cond;
+        if (spl[spl.length-1].toLowerCase() != "do") {
+            addMsg(`'DO' not required on line ${lnnum}!`, LEVEL.WARN)
+            cond = spl.slice(1,-1).join(' ')
+        } else {
+            cond = spl.slice(1).join(' ')
+        }
+        cond = cond.trim()
+        if (!cond) {
+            addMsg(`Missing condition on line ${lnnum}!`, LEVEL.ERROR)
+        }
+        addMsg(`while (${cond}):`, LEVEL.DEBUG)
+        inside.push('while')
+        done = true
+    } else if (cmd == 'repeat') {
+        if (line.split(' ').length > 1) {
+            addMsg(`Too much on line ${lnnum}!`, LEVEL.ERROR)
+        }
+        addMsg(`while True: # repeat`, LEVEL.DEBUG)
+        inside.push('repeat')
+        done = true
+    } else if (cmd == 'for') {
+        const out = line.match(forRe)
+        if (out === null) {
+            addMsg(`Missing arguments on line ${lnnum}!`, LEVEL.ERROR)
+            addMsg(`for ???:`, LEVEL.DEBUG)
+        } else {
+            const gs = out.groups
+            if (!gs.start) {
+                addMsg(`Missing start value on line ${lnnum}!`, LEVEL.ERROR)
+            }
+            if (!gs.to) {
+                addMsg(`Missing end value on line ${lnnum}!`, LEVEL.ERROR)
+            }
+            if (!gs.step) {
+                addMsg(`No step value on line ${lnnum}, using 1 instead.`, LEVEL.INFO)
+            }
+            addMsg(`for ${gs.var} in range(${gs.start ?? "??"}, ${gs.end ?? "??"}${gs.step? (", "+gs.step) : ""}):`, LEVEL.DEBUG)
+        }
+        inside.push('for')
+        done = true
+    }
+    }
+
     // Setup next state
-    const nxtindent = indentwords.has(cmd) || line.endsWith(':') ? 1:0
+    const nxtindent = STRUCTURE.indent.has(cmd) || colonend ? 1:0
     const nstate = {
         indent: indent,
         indentDir: nxtindent,
+        inside: inside,
     }
     return nstate
 }
