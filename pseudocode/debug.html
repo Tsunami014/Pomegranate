@@ -2,6 +2,8 @@
     <title>Pomegranate - Pseudocode</title>
     <script src="./main.js" defer></script>
     <link rel="stylesheet" href="./style.css">
+    <script type="text/javascript" src="/extras/tln.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/extras/tln.min.css"/>
     <meta charset="UTF-8">
 </head>
 <body>
@@ -9,8 +11,13 @@
         <h1>Pseudocode!</h1>
     </header>
     <div id="main">
-        <textarea id="pcode"></textarea>
-        <section id="extras"></section>
+        <div id="wrapper">
+            <textarea id="pcode" oninput="rmEval()"></textarea>
+        </div>
+        <section id="results">
+            <button id="evalbtn" onclick="runCode()">Run code!</button>
+            <div id="logs"></div>
+        </section>
     </div>
     <footer id="results">
         <details>

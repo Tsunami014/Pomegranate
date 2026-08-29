@@ -172,7 +172,6 @@ code.addEventListener("keydown", e => {
 
 
 
-
 const rconts = document.getElementById("refconts");
 const rtxt = document.getElementById("reftxt");
 const REF = {
@@ -295,3 +294,65 @@ function setRefFilter(filt, nbtn) {
     document.querySelector('.refbtnsel').classList.remove('refbtnsel')
     nbtn.classList.add('refbtnsel')
 }
+
+
+
+const log = document.getElementById('logs')
+function rmEval() { log.replaceChildren(); }
+const LEVEL = Object.freeze({
+    INFO: 'info',
+    DEBUG: 'debug',
+    WARN: 'warn',
+    ERROR: 'error',
+});
+function addMsg(msg, level) {
+    const nelm = document.createElement('p')
+    nelm.innerText = msg
+    nelm.classList.add('log')
+    nelm.classList.add(level)
+    log.appendChild(nelm)
+}
+function runCode() {
+    rmEval()
+    var state = {}
+    for (const [index, line] of code.value.split(/\r?\n/).entries()) {
+        state = evalLine(line, state, index + 1);
+    }
+    addMsg("Done evaluating!", LEVEL.INFO)
+}
+
+const deindentwords = new Set([
+    'elseif', 'else', 'endif', 'end', 'endcase', 'endwhile', 'until', 'next'
+]);
+const indentwords = new Set([
+    'begin', 'if', 'elseif', 'else', 'casewhere', 'while', 'repeat', 'for'
+]);
+function evalLine(line, state, lnnum) {
+    console.log(line)
+    const indent = line.search(/\S|$/);
+    line = line.trim()
+    if (!line) return state;
+    const cmd = line.match(/^\S+/)?.[0].toLowerCase()
+
+    // Check indent
+    const lastIndent = state?.indent ?? 0
+    var dir = state?.indentDir ?? 0
+    if (deindentwords.has(cmd)) dir -= 1
+    if (dir > 0 && indent <= lastIndent) {
+        addMsg(`Expected indent on line ${lnnum}!`, LEVEL.ERROR)
+    } else if (dir == 0 && indent != lastIndent) {
+        addMsg(`Unexpected indent on line ${lnnum}!`, LEVEL.ERROR)
+    } else if (dir < 0 && indent >= lastIndent) {
+        addMsg(`Expected deindent on line ${lnnum}!`, LEVEL.ERROR)
+    }
+
+    // Setup next state
+    const nxtindent = indentwords.has(cmd) || line.endsWith(':') ? 1:0
+    const nstate = {
+        indent: indent,
+        indentDir: nxtindent,
+    }
+    return nstate
+}
+
+TLN.append_line_numbers('pcode')

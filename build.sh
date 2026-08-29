@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+minify extras/tln.js -o extras/tln.min.js
+minify extras/tln.css -o extras/tln.min.css
+
 for dir in ./main ./pseudocode; do
     cd "$dir"
     echo "$dir"

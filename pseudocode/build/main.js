@@ -71,9 +71,9 @@ BEGIN
     subprocess(argument)
 END
 
-BEGIN subprocess(arguments)
+BEGIN subprocess(argument)
     process
-END subprocess(arguments)
+END subprocess(argument)
 `],["Returning",`
 BEGIN
     variable = subprocess()
@@ -83,4 +83,4 @@ BEGIN subprocess
     process
     RETURN expression
 END subprocess
-`]]};for(const[e,t]of Object.entries(REF))t.forEach(t=>{const n=document.createElement("p");n.innerText=t[0],n.onclick=()=>{rtxt.value=t[1];const e=document.querySelector(".selrefIt");e&&e.classList.remove("selrefIt"),n.classList.add("selrefIt")},n.classList.add("refIt"),n.classList.add(e+"_it"),rconts.appendChild(n)});function setRefFilter(e,t){rconts.classList=e,document.querySelector(".refbtnsel").classList.remove("refbtnsel"),t.classList.add("refbtnsel")}
+`]]};for(const[e,t]of Object.entries(REF))t.forEach(t=>{const n=document.createElement("p");n.innerText=t[0],n.onclick=()=>{rtxt.value=t[1];const e=document.querySelector(".selrefIt");e&&e.classList.remove("selrefIt"),n.classList.add("selrefIt")},n.classList.add("refIt"),n.classList.add(e+"_it"),rconts.appendChild(n)});function setRefFilter(e,t){rconts.classList=e,document.querySelector(".refbtnsel").classList.remove("refbtnsel"),t.classList.add("refbtnsel")}const log=document.getElementById("logs");function rmEval(){log.replaceChildren()}const LEVEL=Object.freeze({INFO:"info",DEBUG:"debug",WARN:"warn",ERROR:"error"});function addMsg(e,t){const n=document.createElement("p");n.innerText=e,n.classList.add("log"),n.classList.add(t),log.appendChild(n)}function runCode(){rmEval();var e={};for(const[t,n]of code.value.split(/\r?\n/).entries())e=evalLine(n,e,t+1);addMsg("Done evaluating!",LEVEL.INFO)}const deindentwords=new Set(["elseif","else","endif","end","endcase","endwhile","until","next"]),indentwords=new Set(["begin","if","elseif","else","casewhere","while","repeat","for"]);function evalLine(e,t,n){console.log(e);const s=e.search(/\S|$/);if(e=e.trim(),!e)return t;const a=e.match(/^\S+/)?.[0].toLowerCase(),i=t?.indent??0;var o=t?.indentDir??0;deindentwords.has(a)&&(o-=1),o>0&&s<=i?addMsg(`Expected indent on line ${n}!`,LEVEL.ERROR):o==0&&s!=i?addMsg(`Unexpected indent on line ${n}!`,LEVEL.ERROR):o<0&&s>=i&&addMsg(`Expected deindent on line ${n}!`,LEVEL.ERROR);const r=indentwords.has(a)||e.endsWith(":")?1:0,c={indent:s,indentDir:r};return c}TLN.append_line_numbers("pcode")
