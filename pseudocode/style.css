@@ -44,7 +44,7 @@ button {
     padding: 8px 5px;
     font-size: 16px;
     margin: 2px 0;
-    background: #CCC;
+    background-color: #CCC;
     border: 2px black solid;
     border-radius: 8px;
     cursor: pointer;
@@ -62,6 +62,27 @@ button:active {
     box-shadow: 1px 1px rgba(0, 0, 0, .3);
     translate: 0;
 }
+.refbtnsel { background-color: #ADD; }
+.refbtnsel:hover { background-color: #699; }
+.refbtnsel:active { background-color: #577; }
+
+.refIt {
+    padding: 5px;
+    margin: 3px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.refIt:hover {
+    background-color: #EEE;
+}
+
+#refconts.sel > :not(.sel_it),
+#refconts.rep > :not(.rep_it),
+#refconts.subr > :not(.subr_it) {
+    display: none;
+}
+
 
 textarea {
     resize: none;

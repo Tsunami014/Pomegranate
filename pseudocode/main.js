@@ -169,3 +169,36 @@ code.addEventListener("keydown", e => {
         return;
     }
 });
+
+
+
+
+const rconts = document.getElementById("refconts");
+const rtxt = document.getElementById("reftxt");
+const REF = {
+    sel: [
+        ["Hello!", "Hello, world!"],
+    ],
+    rep: [
+        ["Goodbye.", "Bye, world!"],
+    ],
+    subr: [
+        ["Hello cat", "Bye dog"],
+    ],
+}
+for (const [key, opts] of Object.entries(REF)) {
+    opts.forEach(o=>{
+        const elm = document.createElement('p')
+        elm.innerText = o[0]
+        elm.onclick = ()=>{ rtxt.value = o[1] }
+        elm.classList.add('refIt')
+        elm.classList.add(key+'_it')
+        rconts.appendChild(elm)
+    })
+}
+
+function setRefFilter(filt, nbtn) {
+    rconts.classList = filt;
+    document.querySelector('.refbtnsel').classList.remove('refbtnsel')
+    nbtn.classList.add('refbtnsel')
+}

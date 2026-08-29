@@ -17,15 +17,13 @@
             <summary>Reference</summary>
             <div id="ref">
                 <aside>
-                    <button>All</button>
-                    <button>Basics</button>
-                    <button>Repetition</button>
-                    <button>Subroutines</button>
+                    <button onclick="setRefFilter('all', this)" class="refbtnsel">All</button>
+                    <button onclick="setRefFilter('sel', this)">Selection</button>
+                    <button onclick="setRefFilter('rep', this)">Repetition</button>
+                    <button onclick="setRefFilter('subr', this)">Subroutines</button>
                 </aside>
-                <div>
-                    <p>Contents!</p>
-                </div>
-                <textarea disabled>Hello, world!</textarea>
+                <div id="refconts" class="all"></div>
+                <textarea id="reftxt" disabled></textarea>
             </div>
         </details>
     </footer>
