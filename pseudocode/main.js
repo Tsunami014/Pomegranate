@@ -384,7 +384,11 @@ function runCode() {
     if (!state?.inside || state.inside.length > 0) {
         addMsg(`Unclosed statements found: [${state.inside.join(', ')}]!`, LEVEL.ERROR)
     }
-    addMsg("Done evaluating!", LEVEL.GREY)
+    if (log.children.length == 0) {
+        addMsg("Nothing seems wrong!", LEVEL.GREY)
+    } else {
+        addMsg("That is all!", LEVEL.GREY)
+    }
 }
 
 const STRUCTURE = {
@@ -629,9 +633,6 @@ function evalLine(line, state, lnnum) {
             }
             if (!gs.to) {
                 addMsg(`Missing end value on line ${lnnum}!`, LEVEL.ERROR)
-            }
-            if (!gs.step) {
-                addMsg(`No step value on line ${lnnum}, using 1 instead.`, LEVEL.INFO)
             }
             addToPy(`for ${v} in range(${gs.start ?? "??"}, ${gs.to ?? "??"} + 1${gs.step? (", "+gs.step) : ""}):`, pyindent)
         }

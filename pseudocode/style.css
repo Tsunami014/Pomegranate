@@ -1,5 +1,5 @@
 * {
-    font-family: Sans Serif;
+    font-family: sans-serif;
 }
 
 h1 {
@@ -88,20 +88,20 @@ button {
     padding: 8px 5px;
     font-size: 16px;
     margin: 2px 0;
-    background-color: #CCC;
+    background-color: #DDD;
     border: 2px black solid;
     border-radius: 8px;
     cursor: pointer;
     transition: color 0.2s ease, background-color 0.2s ease, translate 0.05s ease, box-shadow 0.05s ease;
 }
 button:hover {
-    background-color: #888;
+    background-color: #999;
     color: white;
     box-shadow: 2px 2px rgba(0, 0, 0, .3);
     translate: -1px -1px;
 }
 button:active {
-    background-color: #676767;
+    background-color: #777;
     color: white;
     box-shadow: 1px 1px rgba(0, 0, 0, .3);
     translate: 0;
