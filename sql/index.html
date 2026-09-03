@@ -1,4 +1,5 @@
-<title>Pomegranate - SQL</title><link rel=stylesheet href=./style.min.css><meta charset=UTF-8><script>function copyc(e,t){var n=document.getElementById("code").value;e&&(n="python3 -c '"+n+"'"),navigator.clipboard.writeText(n),t.timer&&clearTimeout(t.timer),t.origTxt||(t.origTxt=t.innerText),t.innerText="Copied!",t.timer=setTimeout(()=>{t.innerText=t.origTxt,t.timer=null},1e3)}</script><section><h1>Reference</h1><p><b-c>SELECT ... FROM ... [WHERE ...] [GROUP BY ...] [ORDER BY ... [ASC/DESC]]<hr><div id=refconts><p><b-c>SELECT ...</b-c> - the field(s) or calculated values to be displayed<ul><li><b-c>AS</b-c> - Change the name of a column being selected<li>If using <b-c>GROUP BY</b-c>, the following functions may be helpful;<ul><li><b-c>SUM(attribute)</b-c><li><b-c>AVG(attribute)</b-c><li><b-c>COUNT(attribute)</b-c><li><b-c>MIN(attribute)</b-c><li><b-c>MAX(attribute)</b-c></ul></ul><p><b-c>FROM ...</b-c> - the table(s) to be used<ul><li>Can specify multiple tables separated by <b-c>,</b-c> and attributes from each can be referenced by <b-c>TableName.Attribute</b-c></ul><p><b-c>WHERE ...</b-c> - the search criteria, which can contain the following:<ul><li><b-c>CONTAINS</b-c><li><b-c>DOES NOT CONTAIN</b-c><li><b-c>EQUALS</b-c> (<b-c>=</b-c>)<li><b-c>NOT EQUAL TO</b-c> (<b-c>!=</b-c>)<li><b-c>GREATER THAN</b-c> (<b-c>></b-c>)<li><b-c>GREATER THAN OR EQUAL TO</b-c> (<b-c>>=</b-c>)<li><b-c>LESS THAN</b-c> (<b-c>&lt;</b-c>)<li><b-c>LESS THAN OR EQUAL TO</b-c> (<b-c>&lt;=</b-c>)</ul><ul><li><b-c>AND</b-c><li><b-c>OR</b-c><li><b-c>NOT</b-c></ul><p><b-c>GROUP BY ...</b-c> - the field(s) used to group the returned rows<p><b-c>ORDER BY ... [ASC/DESC]</b-c> - the field(s) that determine the sequence of the displayed results.<ul><li><b-c>ASC</b-c> is ascending (A-Z, 0-9)<li><b-c>DESC</b-c> is descending (Z-A, 9-0)</ul></div></section><hr><section><h1>SQL interpreter and practice</h1><button onclick=copyc(!1,this)>Copy as Python</button>
+<title>Pomegranate - SQL</title><link rel=stylesheet href=./style.min.css><meta charset=UTF-8><script>function copyc(e,t){var n=document.getElementById("code").value;e&&(n="python3 -c '"+n+"'"),navigator.clipboard.writeText(n),t.timer&&clearTimeout(t.timer),t.origTxt||(t.origTxt=t.innerText),t.innerText="Copied!",t.timer=setTimeout(()=>{t.innerText=t.origTxt,t.timer=null},1e3)}</script><section><h1>Reference</h1><p><b-c>SELECT ... FROM ... [WHERE ...] [GROUP BY ...] [ORDER BY ... [ASC/DESC]]<hr><div id=refconts><p><b-c>SELECT ...</b-c> - the field(s) or calculated values to be displayed<ul><li>Multiple values can be selected, and are separated with <b-c>,</b-c><li><b-c>... AS ...</b-c> - Change the name of a column being selected<li>You can also use the following functions (may be helpful when using <b-c>GROUP BY</b-c>)<ul><li><b-c>SUM(attribute)</b-c><li><b-c>AVG(attribute)</b-c><li><b-c>COUNT(attribute)</b-c><li><b-c>MIN(attribute)</b-c><li><b-c>MAX(attribute)</b-c></ul></ul><p><b-c>FROM ...</b-c> - the table(s) to be used<ul><li>Can specify multiple tables separated by <b-c>,</b-c> and attributes from each can be referenced by <b-c>TableName.Attribute</b-c></ul><p><b-c>WHERE ...</b-c> - the search criteria, which can contain the following:<ul><li><b-c>CONTAINS</b-c><li><b-c>DOES NOT CONTAIN</b-c><li><b-c>EQUALS</b-c> (<b-c>=</b-c>)<li><b-c>NOT EQUAL TO</b-c> (<b-c>!=</b-c>)<li><b-c>GREATER THAN</b-c> (<b-c>></b-c>)<li><b-c>GREATER THAN OR EQUAL TO</b-c> (<b-c>>=</b-c>)<li><b-c>LESS THAN</b-c> (<b-c>&lt;</b-c>)<li><b-c>LESS THAN OR EQUAL TO</b-c> (<b-c>&lt;=</b-c>)</ul><ul><li><b-c>AND</b-c><li><b-c>OR</b-c><li><b-c>NOT</b-c></ul><p><b-c>GROUP BY ...</b-c> - the field(s) used to group the returned rows<p><b-c>ORDER BY ... [ASC/DESC]</b-c> - the field(s) that determine the sequence of the displayed results.<ul><li><b-c>ASC</b-c> is ascending (A-Z, 0-9)<li><b-c>DESC</b-c> is descending (Z-A, 9-0)</ul></div></section><hr><section><h1>SQL interpreter and practice</h1><p>Some python code where you can play around with SQL databases and has a practice question generator!
+No external libraries are needed to run this code.</p><button onclick=copyc(!1,this)>Copy as Python</button>
 <button onclick=copyc(!0,this)>Copy as terminal command</button>
 <textarea id=code wrap=off disabled>
 import sqlite3
@@ -14,42 +15,57 @@ def run_db(begin="", prefix=""):
     conn = sqlite3.connect(":memory:")
     cur = conn.cursor()
 
-    print("ctrl+c - reset input")
-    print("ctrl+d - exit to menu")
-    print("Remember to end commands with ;")
-    if begin:
-        for c in begin.split(";"):
-            cur.execute(c)
-    if prefix:
-        print(prefix)
+    def prt_start():
+        print("\n\033[35m| ctrl+c - reset input")
+        print("| ctrl+d - exit to menu")
+        print("| ? - reshow this help screen")
+        print("| Remember to end commands with ;")
+        if begin:
+            for c in begin.split(";"):
+                cur.execute(c)
+        if prefix:
+            print("| "+prefix.replace('\n', '\n| '))
+    prt_start()
+
     inp = ""
     while True:
         try:
-            inp += input("> ")
+            i = input("\033[32m> ")
+            if i.strip() == '?':
+                prt_start()
+                continue
+            inp += i
         except KeyboardInterrupt:
             inp = ""
-            print("^C")
+            print("\033[36m^C")
             continue
         except EOFError:
+            print("\033[36m^D\n")
             break
         if ";" in inp:
             *cmds, inp = inp.split(";")
             for c in cmds:
                 try:
                     dat = cur.execute(c)
-                    if dat.description is None:
-                        continue
-                    heads = [d[0] for d in dat.description]
-                    its = [[str(i) for i in r] for r in dat]
-                    lns = [max([len(heads[i])]+[len(j[i]) for j in its]) for i in range(len(heads))]
-                    print("┌─" + "─┬─".join("─"*ln for ln in lns) + "─┐")
-                    print("│ " + " │ ".join(h.ljust(ln) for h, ln in zip(heads, lns)) + " │")
-                    print("├─" + "─┼─".join("─"*ln for ln in lns) + "─┤")
-                    for row in its:
-                        print("│ " + " │ ".join(it.ljust(ln) for it, ln in zip(row, lns)) + " │")
-                    print("└─" + "─┴─".join("─"*ln for ln in lns) + "─┘")
                 except Exception as e:
-                    print(e)
+                    print('\033[31m= '+str(e).replace('\n', '\n= '))
+                    continue
+
+                if dat.description is None:
+                    print('\033[35m= done')
+                    continue
+
+                heads = [d[0] for d in dat.description]
+                its = [[str(i) for i in r] for r in dat]
+                lns = [max([len(heads[i])]+[len(j[i]) for j in its]) for i in range(len(heads))]
+                def prtRow(row):
+                    print("│ " + " │ ".join(it.center(ln) for it, ln in zip(row, lns)) + " │")
+                print("\033[39m┌─" + "─┬─".join("─"*ln for ln in lns) + "─┐")
+                prtRow(heads)
+                print("├─" + "─┼─".join("─"*ln for ln in lns) + "─┤")
+                for row in its:
+                    prtRow(row)
+                print("└─" + "─┴─".join("─"*ln for ln in lns) + "─┘")
     conn.close()
 
 
@@ -59,15 +75,15 @@ def mk_test():
 mainrun = True
 inp = ""
 while mainrun:
-    print("0 - try a sample question")
-    print("b - run a blank sql database")
-    print("ctrl+c - quit")
+    print("\033[33m$ 0 - try a sample question")
+    print("$ b - run a blank sql database")
+    print("$ ctrl+c - quit")
     last = inp
     if inp != "":
-        print(f"blank - rerun last command ({last})")
+        print(f"$ blank - rerun last command ({last})")
     while True:
         try:
-            inp = input("# ").lower()
+            inp = input("\033[34m# ").lower()
         except (KeyboardInterrupt, EOFError):
             mainrun = False
             break
@@ -80,5 +96,5 @@ while mainrun:
             run_db()
             break
         else:
-            print("Unknown command!")
+            print("\033[31m= Unknown command!")
 </textarea></section>

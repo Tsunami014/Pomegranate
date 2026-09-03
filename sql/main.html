@@ -25,8 +25,9 @@ function copyc(term, btn) {
         <div id="refconts">
 <p><b-c>SELECT ...</b-c> - the field(s) or calculated values to be displayed</p>
 <ul>
+    <li>Multiple values can be selected, and are separated with <b-c>,</b-c></li>
     <li><b-c>... AS ...</b-c> - Change the name of a column being selected</li>
-    <li>If using <b-c>GROUP BY</b-c>, the following functions may be helpful;<ul>
+    <li>You can also use the following functions (may be helpful when using <b-c>GROUP BY</b-c>)<ul>
         <li><b-c>SUM(attribute)</b-c></li>
         <li><b-c>AVG(attribute)</b-c></li>
         <li><b-c>COUNT(attribute)</b-c></li>
@@ -63,11 +64,15 @@ function copyc(term, btn) {
     <hr>
     <section>
         <h1>SQL interpreter and practice</h1>
+        <p>A terminal UI for Python to play around with SQL databases!
+        Also has a practice question generator!
+        No external libraries are needed to run this code.</p>
         <button onclick="copyc(false, this)">Copy as Python</button>
         <button onclick="copyc(true, this)">Copy as terminal command</button>
-<textarea id="code" wrap="off" disabled>
+        <textarea id="code" wrap="off" disabled>
 import sqlite3
 import random
+import os
 
 try:
     import readline
@@ -75,46 +80,65 @@ try:
 except (ImportError, AttributeError):
     pass
 
+nocol = os.environ.get("NO_COLOR") or os.environ.get("TERM") == "dumb"
+def col(c):
+    return "" if nocol else f"\033[{c}m"
+
 def run_db(begin="", prefix=""):
     conn = sqlite3.connect(":memory:")
     cur = conn.cursor()
 
-    print("ctrl+c - reset input")
-    print("ctrl+d - exit to menu")
-    print("Remember to end commands with ;")
-    if begin:
-        for c in begin.split(";"):
-            cur.execute(c)
-    if prefix:
-        print(prefix)
+    def prt_start():
+        print(f"\n{col(35)}| ctrl+c - reset input")
+        print("| ctrl+d - exit to menu")
+        print("| ? - reshow this help screen")
+        print("| Remember to end commands with ;")
+        if begin:
+            for c in begin.split(";"):
+                cur.execute(c)
+        if prefix:
+            print("| "+prefix.replace("\n", "\n| "))
+    prt_start()
+
     inp = ""
     while True:
         try:
-            inp += input("> ")
+            i = input(col(32)+"> ")
+            if i.strip() == "?":
+                prt_start()
+                continue
+            inp += i
         except KeyboardInterrupt:
             inp = ""
-            print("^C")
+            print(col(36)+"^C")
             continue
         except EOFError:
+            print(col(36)+"^D\n")
             break
         if ";" in inp:
             *cmds, inp = inp.split(";")
             for c in cmds:
                 try:
                     dat = cur.execute(c)
-                    if dat.description is None:
-                        continue
-                    heads = [d[0] for d in dat.description]
-                    its = [[str(i) for i in r] for r in dat]
-                    lns = [max([len(heads[i])]+[len(j[i]) for j in its]) for i in range(len(heads))]
-                    print("┌─" + "─┬─".join("─"*ln for ln in lns) + "─┐")
-                    print("│ " + " │ ".join(h.ljust(ln) for h, ln in zip(heads, lns)) + " │")
-                    print("├─" + "─┼─".join("─"*ln for ln in lns) + "─┤")
-                    for row in its:
-                        print("│ " + " │ ".join(it.ljust(ln) for it, ln in zip(row, lns)) + " │")
-                    print("└─" + "─┴─".join("─"*ln for ln in lns) + "─┘")
                 except Exception as e:
-                    print(e)
+                    print(col(31)+"= "+str(e).replace("\n", "\n= "))
+                    continue
+
+                if dat.description is None:
+                    print(col(35)+"= done")
+                    continue
+
+                heads = [d[0] for d in dat.description]
+                its = [[str(i) for i in r] for r in dat]
+                lns = [max([len(heads[i])]+[len(j[i]) for j in its]) for i in range(len(heads))]
+                print(col(39)+"┌─" + "─┬─".join("─"*ln for ln in lns) + "─┐")
+                def prtRow(row):
+                    print("│ " + " │ ".join(it.center(ln) for it, ln in zip(row, lns)) + " │")
+                prtRow(heads)
+                print("├─" + "─┼─".join("─"*ln for ln in lns) + "─┤")
+                for row in its:
+                    prtRow(row)
+                print("└─" + "─┴─".join("─"*ln for ln in lns) + "─┘")
     conn.close()
 
 
@@ -124,28 +148,28 @@ def mk_test():
 mainrun = True
 inp = ""
 while mainrun:
-    print("0 - try a sample question")
-    print("b - run a blank sql database")
-    print("ctrl+c - quit")
+    print(col(33)+"$ 0 - try a sample question")
+    print("$ b - run a blank sql database")
+    print("$ ctrl+c - quit")
     last = inp
     if inp != "":
-        print(f"blank - rerun last command ({last})")
+        print(f"$ blank - rerun last command ({last})")
     while True:
         try:
-            inp = input("# ").lower()
+            inp = input(col(34)+"# ").lower()
         except (KeyboardInterrupt, EOFError):
             mainrun = False
             break
         if inp == "":
             inp = last
-        if inp == "s":
+        if inp == "0":
             run_db(*mk_test())
             break
         elif inp == "b":
             run_db()
             break
         else:
-            print("Unknown command!")
+            print(col(31)+"= Unknown command!")
 </textarea>
     </section>
 </body>
