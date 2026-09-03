@@ -1,0 +1,97 @@
+<head>
+    <title>Pomegranate - SQL</title>
+    <link rel="stylesheet" href="./style.min.css">
+    <meta charset="UTF-8">
+</head>
+<body>
+    <section>
+        <h1>SQL interpreter and practice</h1>
+        <button>Copy as Python</button>
+        <button>Copy as terminal command</button>
+<textarea id="ta" wrap="off" disabled>
+import sqlite3
+import random
+
+try:
+    import readline
+    readline.parse_and_bind("set enable-bracketed-paste on")
+except (ImportError, AttributeError):
+    pass
+
+def run_db(begin="", prefix=""):
+    conn = sqlite3.connect(':memory:')
+    cur = conn.cursor()
+
+    print("ctrl+c - reset input")
+    print("ctrl+d - exit to menu")
+    print("Remember to end commands with ;")
+    if begin:
+        for c in begin.split(';'):
+            cur.execute(c)
+    if prefix:
+        print(prefix)
+    inp = ""
+    while True:
+        try:
+            inp += input("> ")
+        except KeyboardInterrupt:
+            inp = ""
+            print('^C')
+            continue
+        except EOFError:
+            break
+        if ';' in inp:
+            *cmds, inp = inp.split(';')
+            for c in cmds:
+                try:
+                    dat = cur.execute(c)
+                    if dat.description is None:
+                        continue
+                    heads = [d[0] for d in dat.description]
+                    its = [[str(i) for i in r] for r in dat]
+                    lns = [max([len(heads[i])]+[len(j[i]) for j in its]) for i in range(len(heads))]
+                    print("┌─" + "─┬─".join("─"*ln for ln in lns) + "─┐")
+                    print("│ " + " │ ".join(h.ljust(ln) for h, ln in zip(heads, lns)) + " │")
+                    print("├─" + "─┼─".join("─"*ln for ln in lns) + "─┤")
+                    for row in its:
+                        print("│ " + " │ ".join(it.ljust(ln) for it, ln in zip(row, lns)) + " │")
+                    print("└─" + "─┴─".join("─"*ln for ln in lns) + "─┘")
+                except Exception as e:
+                    print(e)
+    conn.close()
+
+
+def mk_test():
+    return "", "All tables: "
+
+mainrun = True
+inp = ""
+while mainrun:
+    print("0 - try a sample question")
+    print("b - run a blank sql database")
+    print("ctrl+c - quit")
+    last = inp
+    if inp != "":
+        print(f"blank - rerun last command ({last})")
+    while True:
+        try:
+            inp = input("# ").lower()
+        except (KeyboardInterrupt, EOFError):
+            mainrun = False
+            break
+        if inp == "":
+            inp = last
+        if inp == "s":
+            run_db(*mk_test())
+            break
+        elif inp == "b":
+            run_db()
+            break
+        else:
+            print("Unknown command!")
+</textarea>
+    </section>
+    <section>
+        <h1>Reference</h1>
+    </section>
+</body>
