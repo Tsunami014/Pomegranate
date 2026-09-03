@@ -34,6 +34,9 @@ body {
     display: flex;
     flex-direction: column;
 }
+#results > :not(button) {
+    flex: 1;
+}
 
 #logs {
     overflow-y: scroll;
