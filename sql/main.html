@@ -19,6 +19,49 @@ function copyc(term, btn) {
 </head>
 <body>
     <section>
+        <h1>Reference</h1>
+        <p><b-c>SELECT ... FROM ... [WHERE ...] [GROUP BY ...] [ORDER BY ... [ASC/DESC]]</p>
+        <hr>
+        <div id="refconts">
+<p><b-c>SELECT ...</b-c> - the field(s) or calculated values to be displayed</p>
+<ul>
+    <li><b-c>... AS ...</b-c> - Change the name of a column being selected</li>
+    <li>If using <b-c>GROUP BY</b-c>, the following functions may be helpful;<ul>
+        <li><b-c>SUM(attribute)</b-c></li>
+        <li><b-c>AVG(attribute)</b-c></li>
+        <li><b-c>COUNT(attribute)</b-c></li>
+        <li><b-c>MIN(attribute)</b-c></li>
+        <li><b-c>MAX(attribute)</b-c></li>
+    </ul></li>
+</ul>
+<p><b-c>FROM ...</b-c> - the table(s) to be used</p>
+<ul>
+    <li>Can specify multiple tables separated by <b-c>,</b-c> and attributes from each can be referenced by <b-c>TableName.Attribute</b-c></li>
+</ul>
+<p><b-c>WHERE ...</b-c> - the search criteria, which can contain the following:</p>
+<ul>
+    <li><b-c>CONTAINS</b-c></li>
+    <li><b-c>DOES NOT CONTAIN</b-c></li>
+    <li><b-c>EQUALS</b-c> (<b-c>=</b-c>)</li>
+    <li><b-c>NOT EQUAL TO</b-c> (<b-c>!=</b-c>)</li>
+    <li><b-c>GREATER THAN</b-c> (<b-c>&gt;</b-c>)</li>
+    <li><b-c>GREATER THAN OR EQUAL TO</b-c> (<b-c>&gt;=</b-c>)</li>
+    <li><b-c>LESS THAN</b-c> (<b-c>&lt;</b-c>)</li>
+    <li><b-c>LESS THAN OR EQUAL TO</b-c> (<b-c>&lt;=</b-c>)</li>
+</ul><ul>
+    <li><b-c>AND</b-c></li>
+    <li><b-c>OR</b-c></li>
+    <li><b-c>NOT</b-c></li>
+</ul>
+<p><b-c>GROUP BY ...</b-c> - the field(s) used to group the returned rows</p>
+<p><b-c>ORDER BY ... [ASC/DESC]</b-c> - the field(s) that determine the sequence of the displayed results.
+    <ul><li><b-c>ASC</b-c> is ascending (A-Z, 0-9)</li>
+    <li><b-c>DESC</b-c> is descending (Z-A, 9-0)</li></ul>
+</p>
+        </div>
+    </section>
+    <hr>
+    <section>
         <h1>SQL interpreter and practice</h1>
         <button onclick="copyc(false, this)">Copy as Python</button>
         <button onclick="copyc(true, this)">Copy as terminal command</button>
@@ -104,8 +147,5 @@ while mainrun:
         else:
             print("Unknown command!")
 </textarea>
-    </section>
-    <section>
-        <h1>Reference</h1>
     </section>
 </body>
