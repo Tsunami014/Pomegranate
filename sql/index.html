@@ -1,6 +1,6 @@
-<title>Pomegranate - SQL</title><link rel=stylesheet href=./style.min.css><meta charset=UTF-8><section><h1>SQL interpreter and practice</h1><button>Copy as Python</button>
-<button>Copy as terminal command</button>
-<textarea id=ta wrap=off disabled>
+<title>Pomegranate - SQL</title><link rel=stylesheet href=./style.min.css><meta charset=UTF-8><script>function copyc(e,t){var n=document.getElementById("code").value;e&&(n="python3 -c '"+n+"'"),navigator.clipboard.writeText(n),t.timer&&clearTimeout(t.timer),t.origTxt||(t.origTxt=t.innerText),t.innerText="Copied!",t.timer=setTimeout(()=>{t.innerText=t.origTxt,t.timer=null},1e3)}</script><section><h1>SQL interpreter and practice</h1><button onclick=copyc(!1,this)>Copy as Python</button>
+<button onclick=copyc(!0,this)>Copy as terminal command</button>
+<textarea id=code wrap=off disabled>
 import sqlite3
 import random
 
@@ -11,14 +11,14 @@ except (ImportError, AttributeError):
     pass
 
 def run_db(begin="", prefix=""):
-    conn = sqlite3.connect(':memory:')
+    conn = sqlite3.connect(":memory:")
     cur = conn.cursor()
 
     print("ctrl+c - reset input")
     print("ctrl+d - exit to menu")
     print("Remember to end commands with ;")
     if begin:
-        for c in begin.split(';'):
+        for c in begin.split(";"):
             cur.execute(c)
     if prefix:
         print(prefix)
@@ -28,12 +28,12 @@ def run_db(begin="", prefix=""):
             inp += input("> ")
         except KeyboardInterrupt:
             inp = ""
-            print('^C')
+            print("^C")
             continue
         except EOFError:
             break
-        if ';' in inp:
-            *cmds, inp = inp.split(';')
+        if ";" in inp:
+            *cmds, inp = inp.split(";")
             for c in cmds:
                 try:
                     dat = cur.execute(c)
